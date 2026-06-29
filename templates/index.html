@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FalconEye - Classroom Attendance System</title>
+  <meta name="description" content="FalconEye - Classroom Face Recognition Attendance System.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       NAVBAR
+       ═══════════════════════════════════════════════════════════ -->
+  <header class="navbar">
+    <div class="navbar-brand">
+      <div class="navbar-logo">🦅</div>
+      <h1 class="navbar-title">FALCON<span>.EYE</span></h1>
+    </div>
+    
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="liveTab">📺 Live Session</button>
+      <button class="tab-btn" data-tab="studentsTab">👥 Student Registry</button>
+      <button class="tab-btn" data-tab="historyTab">📋 Session History</button>
+    </nav>
+
+    <div class="navbar-right">
+      <div id="liveIndicator" class="live-indicator stopped">
+        <span class="live-dot"></span>
+        <span id="liveText">STOPPED</span>
+      </div>
+      <div id="navbarTime" class="navbar-time">00:00:00</div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MAIN APP CONTAINER
+       ═══════════════════════════════════════════════════════════ -->
+  <main class="app-container">
+
+    <!-- 📺 TAB 1: LIVE ATTENDANCE SESSION -->
+    <div id="liveTab" class="tab-content active">
+      <div class="split-layout">
+        <!-- Left Column: Camera Feed & Session controls -->
+        <div class="left-col">
+          <!-- Class Session Controller -->
+          <div class="card session-controller">
+            <h2 class="section-title">Class Session</h2>
+            
+            <!-- Form to start class -->
+            <form id="startSessionForm" class="mt-2">
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="classNameInput" class="form-label">Class / Section</label>
+                  <input type="text" id="classNameInput" class="form-control" placeholder="e.g. CS-301" required>
+                </div>
+                <div class="form-group flex-1">
+                  <label for="subjectInput" class="form-label">Subject</label>
+                  <input type="text" id="subjectInput" class="form-control" placeholder="e.g. Algorithms" required>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-full mt-2">▶ Start Attendance Session</button>
+            </form>
+
+            <!-- Display active class info -->
+            <div id="activeClassInfo" class="active-class-info hidden">
+              <div class="class-meta">
+                <div class="class-title" id="activeClassName">CS-301</div>
+                <div class="class-subject" id="activeClassSubject">Algorithms</div>
+                <div class="class-date" id="activeClassDate">2026-06-29</div>
+              </div>
+              <button id="endSessionBtn" class="btn btn-danger btn-full mt-2">■ End Class Session</button>
+            </div>
+          </div>
+
+          <!-- Camera Section -->
+          <div class="card camera-card mt-2">
+            <div class="section-header">
+              <h2 class="section-title">Live Camera Stream</h2>
+            </div>
+            
+            <div id="cameraWrapper" class="camera-feed-wrapper">
+              <img id="cameraFeed" src="" alt="Webcam Live Stream">
+              <div class="camera-overlay">
+                <div class="scan-line"></div>
+              </div>
+            </div>
+            
+            <div class="camera-controls">
+              <button id="startCameraBtn" class="btn btn-secondary flex-1">▶ Start Feed</button>
+              <button id="stopCameraBtn" class="btn btn-ghost" disabled>■ Stop Feed</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Stats & Live Log -->
+        <div class="right-col">
+          <!-- Session Stats -->
+          <div class="stats-row">
+            <div class="stat-card blue">
+              <span class="stat-icon">👥</span>
+              <div class="stat-label">Total Students</div>
+              <div id="statRegistered" class="stat-value">0</div>
+              <div class="stat-sub">Preregistered encodings</div>
+            </div>
+            
+            <div class="stat-card accent">
+              <span class="stat-icon">✓</span>
+              <div class="stat-label">Present Today</div>
+              <div id="statPresent" class="stat-value">0</div>
+              <div class="stat-sub">Present in active class</div>
+            </div>
+            
+            <div class="stat-card purple">
+              <span class="stat-icon">📈</span>
+              <div class="stat-label">Attendance Rate</div>
+              <div id="statRate" class="stat-value">0%</div>
+              <div class="progress-bar-wrapper">
+                <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+              </div>
+            </div>
+            
+            <div class="stat-card warning">
+              <span class="stat-icon">🕒</span>
+              <div class="stat-label">Last Marked</div>
+              <div id="statLastName" class="stat-value" style="font-size: 1.2rem; height: 1.8rem; display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
+              <div id="statLastTime" class="stat-sub">—</div>
+            </div>
+          </div>
+
+          <!-- Live Attendance Log Table -->
+          <div class="card table-section mt-2 flex-1">
+            <div class="table-header">
+              <div class="table-title">
+                <span>⚡</span> Real-time Attendance Feed
+              </div>
+              <div class="table-controls">
+                <button id="refreshLiveBtn" class="btn btn-secondary btn-sm">🔄 Refresh</button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="attendance-table">
+                <thead>
+                  <tr>
+                    <th>Roll No.</th>
+                    <th>Student Name</th>
+                    <th>Time Detected</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="liveAttendanceBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 👥 TAB 2: STUDENT REGISTRY -->
+    <div id="studentsTab" class="tab-content">
+      <div class="split-layout">
+        <!-- Left Column: Add Student Form -->
+        <div class="left-col">
+          <div class="card">
+            <h2 class="section-title">Preregister Student</h2>
+            <form id="registerStudentForm" class="mt-2">
+              <div class="form-group">
+                <label for="studentIdInput" class="form-label">Student ID / Roll Number</label>
+                <input type="text" id="studentIdInput" class="form-control" placeholder="e.g. 21bcs1001" required autocomplete="off">
+              </div>
+              
+              <div class="form-group">
+                <label for="studentNameInput" class="form-label">Full Name</label>
+                <input type="text" id="studentNameInput" class="form-control" placeholder="e.g. John Doe" required autocomplete="off">
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Face Image Source</label>
+                
+                <!-- Toggle between File Upload and Camera Snapshot -->
+                <div class="file-upload-area" id="fileUploadArea">
+                  <input type="file" id="studentPhotoInput" accept="image/*">
+                  <span class="upload-icon">📁</span>
+                  <span class="upload-text">Drag & drop or <strong>browse file</strong></span>
+                </div>
+                
+                <div class="or-divider">Or</div>
+                
+                <button type="button" id="captureSnapshotBtn" class="btn btn-secondary btn-full">📸 Capture from Live Feed</button>
+                
+                <!-- Snapshot Preview -->
+                <div id="photoPreview">
+                  <img id="previewImg" src="" alt="Face Preview">
+                  <button type="button" id="clearPreviewBtn" class="preview-clear-btn">✕ Remove</button>
+                </div>
+              </div>
+
+              <div id="registerFeedback" class="alert" style="display: none;"></div>
+
+              <button type="submit" class="btn btn-primary btn-full mt-2">+ Register Student</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Right Column: Student List -->
+        <div class="right-col">
+          <div class="card flex-1">
+            <div class="table-header">
+              <h2 class="table-title">Registered Students</h2>
+              <div class="table-controls">
+                <div class="filter-group">
+                  <span class="filter-icon">🔍</span>
+                  <input type="text" id="searchStudentInput" class="filter-input" placeholder="Search ID or name...">
+                </div>
+              </div>
+            </div>
+
+            <div class="table-container" style="max-height: calc(100vh - 220px);">
+              <table class="attendance-table">
+                <thead>
+                  <tr>
+                    <th>Roll No.</th>
+                    <th>Name</th>
+                    <th>Date Registered</th>
+                    <th style="width: 80px;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="studentListBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📋 TAB 3: SESSION HISTORY & REPORTS -->
+    <div id="historyTab" class="tab-content">
+      <div class="split-layout">
+        <!-- Left Column: Sessions List -->
+        <div class="left-col" style="flex: 0.4;">
+          <div class="card flex-1">
+            <h2 class="section-title">Past Class Sessions</h2>
+            <div class="sessions-list mt-2" id="sessionsList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Selected Session Log -->
+        <div class="right-col" style="flex: 0.6;">
+          <div class="card flex-1" id="historyDetailsCard">
+            <div class="empty-state" style="padding: 100px 20px;">
+              <span class="empty-state-icon">📋</span>
+              <h3>Select a class session</h3>
+              <p>Click on any session from the left panel to view details and export records.</p>
+            </div>
+            
+            <div id="historyDetailsContent" class="hidden">
+              <div class="table-header">
+                <div>
+                  <h2 id="historyDetailsTitle" class="table-title">Session Details</h2>
+                  <div id="historyDetailsMeta" class="text-muted font-mono" style="font-size: 0.8rem; margin-top: 4px;"></div>
+                </div>
+                <div class="table-controls">
+                  <button id="exportHistoryCsvBtn" class="btn btn-primary btn-sm">📤 Export CSV</button>
+                </div>
+              </div>
+
+              <div class="table-container" style="max-height: calc(100vh - 280px);">
+                <table class="attendance-table">
+                  <thead>
+                    <tr>
+                      <th>Roll No.</th>
+                      <th>Student Name</th>
+                      <th>Time Checked In</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyAttendanceBody">
+                    <!-- Dynamically populated -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       TOAST CONTAINER
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

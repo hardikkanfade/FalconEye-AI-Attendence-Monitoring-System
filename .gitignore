@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pkl
+venv/
+.venv/
+env/
+
+# Database
+attendance.db
+attendance.db-journal
+
+# Local face images (preserve folder, ignore contents)
+known_faces/*
+!known_faces/.gitkeep
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
